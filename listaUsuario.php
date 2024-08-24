@@ -1,6 +1,6 @@
 <?php
 
-    require_once "helpers/protectNivel.php";
+    // require_once "helpers/protectNivel.php";
     require_once "helpers/Formulario.php";
     require_once "library/Database.php";
     require_once "comuns/cabecalho.php";
@@ -32,7 +32,6 @@
                     <th>Nome</th>
                     <th>Email</th>
                     <th>Nível</th>
-                    <th>Tipo usuário</th>
                     <th>CPF</th>
                     <th>Status</th>
                     <th>Opções</th>
@@ -46,9 +45,8 @@
                             <td><?= $row['id'] ?></td>
                             <td><?= $row['nome'] ?></td>
                             <td><?= $row['email'] ?></td>
-                            <td><?= getNivelDescricao($row['nivel']) ?></td>
+                            <td><?= getNivelDescricao($row['tipo_usuario']) ?></td>
                             <td><?= $row['cpf'] ?></td>
-                            <td><?= $row['tipo_usuario'] ?></td>
                             <td><?= getStatusDescricao($row['statusRegistro']) ?></td>
                             <td>
                                 <a href="formUsuario.php?acao=update&id=<?= $row['id'] ?>" class="btn btn-outline-primary btn-sm" title="Alteração">Alterar</a>&nbsp;

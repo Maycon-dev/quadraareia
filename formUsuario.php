@@ -1,6 +1,6 @@
 <?php
 
-    require_once "helpers/protectNivel.php";
+    // require_once "helpers/protectNivel.php";
     // carrega o formulário
     require_once "helpers/Formulario.php";
     // carrega o cabecalho
@@ -10,10 +10,10 @@
     // carrega as funções
     require_once "library/Funcoes.php";
 
-    // verifica se o usuario está logado
-    if (!Funcoes::userLogado()) {
-        return header("Location: index.php");
-    }
+    // // verifica se o usuario está logado
+    // if (!Funcoes::userLogado()) {
+    //     return header("Location: index.php");
+    // }
 
     // $db recebe a conexão com o banco de dados
     $db = new Database();

@@ -9,14 +9,14 @@
     try {
 
         $result = $db->dbUpdate("UPDATE pagamento 
-                                SET reserva_id = ?, data_pagamento = ?, valor_pago = ?, metodo_pagamento = ?, statusPagamento = ?
+                                SET reserva_id = ?, data_pagamento = ?, valor_pago = ?, metodo_pagamento = ?, status_pagamento = ?
                                 WHERE id = ?",
                                 [
                                     $_POST['reserva_id'],
                                     $_POST['data_pagamento'],
                                     $_POST['valor_pago'],
                                     $_POST['metodo_pagamento'],
-                                    $_POST['statusPagamento'],
+                                    $_POST['status_pagamento'],
 
                                     $_POST['id']
                                 ]);

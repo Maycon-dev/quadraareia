@@ -1,6 +1,6 @@
 <?php
 
-    require_once "helpers/protectNivel.php";
+    // require_once "helpers/protectNivel.php";
     // carrega a class do banco de dados
     require_once "library/Database.php";
 

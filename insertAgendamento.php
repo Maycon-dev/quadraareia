@@ -3,20 +3,24 @@
     require_once "helpers/Formulario.php";
     require_once "library/Database.php";
 
+    session_start();
+
     $db = new Database();
     $dados = [];
 
     $dados_horario = $db->dbSelect("SELECT * FROM horario_disponivel WHERE id = ?", 'first', [$_POST['horario_id']]);
 
     // Captura dos dados do formulário
-    $usuario_id = isset($_SESSION['usuario_id']) ? $_SESSION['usuario_id'] : NULL;
-    $cpf = $_POST['cpf'];
-    $telefone = $_POST['telefone'];
+    $usuario_id = isset($_SESSION['userId']) ? $_SESSION['userId'] : NULL;
+    $cpf = preg_replace("/[^0-9]/", "", $_POST['cpf']);
+    $telefone = preg_replace("/[^0-9]/", "", $_POST['telefone']);
 
     $local_id = $_POST['local_id'];
     $preco_hora_local = $db->dbSelect("SELECT preco_hora FROM local WHERE id = ?", 'first', [$local_id]);
 
-    // var_dump($_POST);
+    $tipo_pagamento = $_POST['tipo_pagamento'];
+
+    // var_dump($usuario_id);
     // exit;
 
     $data_hora_inicio =  $dados_horario->hora_inicio;
@@ -30,12 +34,29 @@
         $query = "";
 
         // Executa a query
-        $db->dbInsert("INSERT INTO reserva (usuario_id, cpf, telefone, local_id, data_hora_inicio, data_hora_fim, status, valor)
+        $reserva = $db->dbInsert("INSERT INTO reserva (usuario_id, cpf, telefone, local_id, data_hora_inicio, data_hora_fim, status, valor)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [$usuario_id, $cpf, $telefone, $local_id, $data_hora_inicio, $data_hora_fim, $status, $valor]);
 
-        // Redireciona para uma página de sucesso ou exibe uma mensagem
-        return header("Location: agendamento.php?msgSucesso=Agendamento inserido com sucesso.&acao=insert");
-        exit;
+        if($reserva) {
+            $inativaHorario = $db->dbUpdate("UPDATE horario_disponivel SET statusRegistro = ? WHERE id = ?"
+            , [2, $_POST['horario_id']]);
+        }
+
+        if($reserva && $inativaHorario) {
+
+            $id_reserva = $db->dbSelect("SELECT id FROM reserva ORDER BY id DESC LIMIT 1", 'first');
+
+            // Executa a query
+            $pagamento = $db->dbInsert("INSERT INTO pagamento (reserva_id, valor_pago, metodo_pagamento) VALUES (?, ?, ?)", [$id_reserva->id, $valor, $tipo_pagamento]);
+
+            return header("Location: agendamento.php?msgSucesso=Agendamento inserido com sucesso.&acao=insert");
+            exit;
+        } else {
+            return header("Location: agendamento.php?msgError=Erro ao inserir registro.&acao=insert");
+            exit;
+        }
+
+
     } else {
         // Exibe mensagem de erro caso algum campo obrigatório esteja vazio
         echo "Por favor, preencha todos os campos obrigatórios!";

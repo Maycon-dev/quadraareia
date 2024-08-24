@@ -65,7 +65,7 @@ $data = $db->dbSelect("SELECT * FROM pagamento");
                                     <td><?= $row['data_pagamento'] ?></td>
                                     <td><?= $row['valor_pago'] ?></td>
                                     <td><?= $row['metodo_pagamento'] ?></td>
-                                    <td><?= getStatusDescricao($row['status_pagamento']) ?></td>
+                                    <td><?= $row['status_pagamento'] ?></td>
                                     <td class="text-right">
                                         <div class="dropdown dropdown-action">
                                             <a href="#" class="action-icon dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>

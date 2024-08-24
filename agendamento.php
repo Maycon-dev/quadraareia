@@ -31,6 +31,8 @@
 
     $dados_horario_local = $db->dbSelect("SELECT * FROM horario_disponivel WHERE statusRegistro = 1");
 
+    $dados_metodo_pagamento = $db->dbSelect("SELECT * FROM metodo_pagamento WHERE statusRegistro = 1");
+
 ?>
 
 <div class="page-wrapper">
@@ -119,6 +121,17 @@
                                     <label for="telefone">Telefone <span class="text-danger">*</span></label>
                                     <input class="form-control" name="telefone" id="telefone" type="text" value="<?= isset($dados->telefone) ? $dados->telefone : "" ?>" required>
                                 </div>
+                            </div>
+
+                            <div class="form-group col-md-12">
+                                <label for="tipo_pagamento" class="form-label">Metodo pagamento  <span class="text-danger">*</span></label>
+                                <select name="tipo_pagamento" id="tipo_pagamento" class="form-control" required>
+                                    <option value="" <?= isset($dados_metodo_pagamento->id) ? ($dados_metodo_pagamento->id == "" ? "selected" : "") : "" ?>>...</option>
+                                    <?php foreach ($dados_metodo_pagamento as $metodo_pagamento): ?>
+                                        <option <?= (isset($dados_metodo_pagamento->metodo_pagamento) ? ($dados_metodo_pagamento->metodo_pagamento == $metodo_pagamento['id'] ? 'selected' : '') : "") ?> 
+                                        value="<?= $metodo_pagamento['id'] ?>"><?= $metodo_pagamento['nome'] ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             
                             <div class="container justify-content-center text-center mt-4">

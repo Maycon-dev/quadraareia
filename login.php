@@ -53,7 +53,7 @@
             $_SESSION["userId"]     = $data->id;
             $_SESSION["userNome"]   = $data->nome;
             $_SESSION["userEmail"]  = $data->email;
-            $_SESSION["userNivel"]  = $data->nivel;
+            $_SESSION["userNivel"]  = $data->tipo_usuario;
             $_SESSION["userSenha"]  = $data->senha;
             
             // Direcionar o usuário para página home

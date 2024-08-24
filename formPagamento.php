@@ -50,7 +50,8 @@
                         <div class="col-sm-4">
                             <div class="form-group">
                                 <label for="data_pagamento">Data de pagamento <span class="text-danger">*</span></label>
-                                <input class="form-control" name="data_pagamento" id="data_pagamento" type="text" value="<?= isset($dados->data_pagamento) ? $dados->data_pagamento : "" ?>">
+                                <input class="form-control" name="data_pagamento" id="data_pagamento" type="datetime-local" 
+                                    value="<?= isset($dados->data_pagamento) ? date('Y-m-d\TH:i', strtotime($dados->data_pagamento)) : "" ?>">
                             </div>
                         </div>
 
