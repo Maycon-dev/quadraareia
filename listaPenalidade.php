@@ -8,7 +8,7 @@ require_once "helpers/Formulario.php";
 // Criando o objeto Db para classe de base de dados
 $db = new Database();
 
-$data = $db->dbSelect("SELECT * FROM penalidade");
+$data = $db->dbSelect("SELECT concat(usuario_id, ' - ', u.nome) as usuario, p.*, concat(if(fim - CURRENT_DATE < 0, 0, fim - CURRENT_DATE), ' dias') as penalidade_restante, concat(fim - inicio, ' dias') AS penalidade_total FROM penalidade p INNER JOIN usuario u ON (u.id = usuario_id)");
 
 ?>
 
@@ -48,10 +48,11 @@ $data = $db->dbSelect("SELECT * FROM penalidade");
                                 <tr>
                                     <th>ID</th>
                                     <th>Usuário</th>
-                                    <th>Faltas</th>
-                                    <th>Dias bloqueado</th>
-                                    <th>Bloqueado até</th>
-                                    <th>Status do registor</th>
+                                    <th>Início</th>
+                                    <th>Fim</th>
+                                    <th>Tempo Total</th>
+                                    <th>Tempo Restante</th>
+                                    <th>Status do registro</th>
                                     <th class="text-right">Ação</th>
                                 </tr>
                             </thead>
@@ -61,10 +62,11 @@ $data = $db->dbSelect("SELECT * FROM penalidade");
                                     ?>
                                 <tr>
                                     <td><?= $row['id'] ?></td>
-                                    <td><img width="28" height="28" src="assets/img/user.jpg" class="rounded-circle m-r-5" alt=""> <?= $row['usuario_id'] ?></td>
-                                    <td><?= $row['faltas'] ?></td>
-                                    <td><?= $row['dias_bloqueio'] ?></td>
-                                    <td><?= $row['bloqueado_ate'] ?></td>
+                                    <td><img width="28" height="28" src="assets/img/user.jpg" class="rounded-circle m-r-5" alt=""> <?= $row['usuario'] ?></td>
+                                    <td><?= $row['inicio'] ?></td>
+                                    <td><?= $row['fim'] ?></td>
+                                    <td><?= $row['penalidade_total'] ?></td>
+                                    <td><?= $row['penalidade_restante'] ?></td>
                                     <td><?= getStatusDescricao($row['statusRegistro']) ?></td>
                                     <td class="text-right">
                                         <div class="dropdown dropdown-action">

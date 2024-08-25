@@ -1,36 +1,37 @@
 <?php
 
-    // require_once "helpers/protectNivel.php";
-    require_once "library/Database.php";
-    require_once "library/Funcoes.php";
+require_once "helpers/protectNivel.php";
+require_once "library/Database.php";
 
-    if (isset($_POST['usuario_id'])) {
+if (isset($_POST['usuario']) && isset($_POST['fim']) && isset($_POST['motivo']) && isset($_POST['statusRegistro'])) {
 
-        $db = new Database();
+    $db = new Database();
 
-        try {
+    try {
+        // Inserção de dados na tabela penalidade
+        $result = $db->dbInsert("INSERT INTO penalidade 
+                                (usuario_id, statusRegistro, inicio, fim, motivo)
+                                VALUES (?, ?, NOW(), ?, ?)",
+                                [
+                                    $_POST['usuario'],        // Valor selecionado no campo 'usuario'
+                                    $_POST['statusRegistro'], // Status do registro
+                                    $_POST['fim'],            // Data final da penalidade
+                                    $_POST['motivo']          // Motivo da penalidade
+                                ]);
 
-            $result = $db->dbInsert("INSERT INTO penalidade
-                                    (usuario_id, faltas, dias_bloqueio, bloqueado_ate, statusRegistro)
-                                    VALUES (?, ?, ?, ?, ?)",
-                                    [
-                                        $_POST['usuario_id'],
-                                        $_POST['faltas'],
-                                        $_POST['dias_bloqueio'],
-                                        $_POST['bloqueado_ate'],
-                                        $_POST['statusRegistro'],
-                                    ]);
-
-            if ($result) {
-                return header("Location: listaPenalidade.php?msgSucesso=Registro inserido com sucesso.");
-            } else {
-                return header("Location: listaPenalidade.php?msgError=Falha ao tentar inserir o registro.");
-            }
-                
-        } catch (Exception $ex) {
-            echo '<p style="color: red;">ERROR: '. $ex->getMessage(). "</p>";
+        if ($result) {
+            header("Location: listaPenalidade.php?msgSucesso=Registro inserido com sucesso.");
+            exit; // Certifique-se de encerrar o script após redirecionar
+        } else {
+            header("Location: listaPenalidade.php?msgError=Falha ao tentar inserir o registro.");
+            exit; // Certifique-se de encerrar o script após redirecionar
         }
         
-    } else {
-        return header("Location: listaPenalidade.php");
+    } catch (Exception $ex) {
+        echo '<p style="color: red;">ERROR: '. $ex->getMessage(). "</p>";
     }
+
+} else {
+    header("Location: listaPenalidade.php?msgError=Dados incompletos.");
+    exit; // Certifique-se de encerrar o script após redirecionar
+}

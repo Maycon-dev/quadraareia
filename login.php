@@ -20,7 +20,7 @@
             if ($data == 0) {
                 // Criar super user
                 $result = $db->dbInsert("INSERT INTO usuario 
-                                        (tipo_usuario, statusRegistro, nome, senha, email, cpf)
+                                        (tipo_usuario, statusRegistro, nome, senha, email, telefone)
                                         VALUES (?, ?, ?, ?, ?, ?)",
                                         [
                                             1,

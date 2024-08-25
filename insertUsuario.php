@@ -12,13 +12,12 @@
             try {
 
                 $result = $db->dbInsert("INSERT INTO usuario 
-                                        (nome, email, statusRegistro, nivel, senha, cpf, tipo_usuario)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                        (nome, email, statusRegistro, cpf, tipo_usuario, senha)
+                                        VALUES (?, ?, ?, ?, ?, ?)",
                                         [
                                             $_POST['nome'],
                                             $_POST['email'],
                                             $_POST['statusRegistro'],
-                                            $_POST['nivel'],
                                             $_POST['cpf'],
                                             $_POST['tipo_usuario'],
                                             password_hash(trim($_POST['senha']), PASSWORD_DEFAULT),

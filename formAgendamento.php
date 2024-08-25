@@ -46,7 +46,7 @@
         ", 'first', [$_GET['id']]);
         };
 
-        var_dump($dados);
+
 ?>
 
     <div class="page-wrapper mt-4">
