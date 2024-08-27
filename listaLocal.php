@@ -43,7 +43,7 @@
 				<div class="row">
 					<div class="col-md-12">
 						<div class="table-responsive">
-							<table class="table table-border table-striped custom-table datatable mb-0">
+							<table id="tbListaLocal" class="table table-border table-striped custom-table mb-0">
 								<thead>
 									<tr>
                                         <th>ID</th>
@@ -86,5 +86,7 @@
         </div>
 
 <?php 
+    echo datatables("tbListaLocal");
+
     require_once 'comuns/rodape.php';
 ?>

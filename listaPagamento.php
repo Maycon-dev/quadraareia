@@ -43,7 +43,7 @@ $data = $db->dbSelect("SELECT * FROM pagamento");
             <div class="row">
                 <div class="col-md-12">
                     <div class="table-responsive">
-                        <table class="table table-border table-striped custom-table datatable mb-0">
+                        <table id="tbListaPagamento" class="table table-border table-striped custom-table mb-0">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -88,5 +88,7 @@ $data = $db->dbSelect("SELECT * FROM pagamento");
     </div>
 
 <?php 
-require_once 'comuns/rodape.php';
+    echo datatables("tbListaPagamento");
+
+    require_once 'comuns/rodape.php';
 ?>

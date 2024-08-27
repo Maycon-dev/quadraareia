@@ -1,14 +1,14 @@
 <?php
 
-// require_once "helpers/protectNivel.php";
-require_once 'comuns/cabecalho.php';
-require_once "library/Database.php";
-require_once "helpers/Formulario.php";
+    // require_once "helpers/protectNivel.php";
+    require_once 'comuns/cabecalho.php';
+    require_once "library/Database.php";
+    require_once "helpers/Formulario.php";
 
-// Criando o objeto Db para classe de base de dados
-$db = new Database();
+    // Criando o objeto Db para classe de base de dados
+    $db = new Database();
 
-$data = $db->dbSelect("SELECT concat(usuario_id, ' - ', u.nome) as usuario, p.*, concat(if(fim - CURRENT_DATE < 0, 0, fim - CURRENT_DATE), ' dias') as penalidade_restante, concat(fim - inicio, ' dias') AS penalidade_total FROM penalidade p INNER JOIN usuario u ON (u.id = usuario_id)");
+    $data = $db->dbSelect("SELECT concat(usuario_id, ' - ', u.nome) as usuario, p.*, concat(if(fim - CURRENT_DATE < 0, 0, fim - CURRENT_DATE), ' dias') as penalidade_restante, concat(fim - inicio, ' dias') AS penalidade_total FROM penalidade p INNER JOIN usuario u ON (u.id = usuario_id)");
 
 ?>
 
@@ -40,10 +40,11 @@ $data = $db->dbSelect("SELECT concat(usuario_id, ' - ', u.nome) as usuario, p.*,
                     <a href="formPenalidade.php?acao=insert" class="btn btn btn-primary btn-rounded float-right"><i class="fa fa-plus"></i></a>
                 </div>
             </div>
+
             <div class="row">
                 <div class="col-md-12">
                     <div class="table-responsive">
-                        <table class="table table-border table-striped custom-table datatable mb-0">
+                        <table id="tbListaPenalidade" class="table table-border table-striped custom-table mb-0">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -90,5 +91,7 @@ $data = $db->dbSelect("SELECT concat(usuario_id, ' - ', u.nome) as usuario, p.*,
     </div>
 
 <?php 
-require_once 'comuns/rodape.php';
+    echo datatables("tbListaPenalidade");
+
+    require_once 'comuns/rodape.php';
 ?>

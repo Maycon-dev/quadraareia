@@ -38,9 +38,9 @@
                 <div class="col-sm-10">
                     <label for="usuario" class="form-label">Usuário</label>
                     <select class="form-control" name="usuario" id="usuario">
-                        <option value="" <?= !isset($dados->usuario) || empty($dados->usuario) ? "selected" : "" ?>>Selecione um usuário</option>
+                        <option value="" <?= !isset($dados->usuario_id) || empty($dados->usuario_id) ? "selected" : "" ?>>Selecione um usuário</option>
                         <?php foreach ($dados_usuarios as $usuario): ?>
-                            <option value="<?= $usuario['id'] ?>" <?= isset($dados->usuario) && $dados->usuario == $usuario['id'] ? 'selected' : '' ?>>
+                            <option value="<?= $usuario['id'] ?>" <?= isset($dados->usuario_id) && $dados->usuario_id == $usuario['id'] ? 'selected' : '' ?>>
                                 <?= htmlspecialchars($usuario['usu']) ?>
                             </option>
                         <?php endforeach; ?>
@@ -102,7 +102,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         const diasBloqueioInput = document.getElementById('dias_bloqueio');
         const bloqueadoAteInput = document.getElementById('fim');
-        const criadoEmInput = document.getElementById('inicio');
+        const inicioInput = document.getElementById('inicio');
 
         // Função para adicionar dias a uma data
         function adicionarDias(data, dias) {
@@ -115,7 +115,7 @@
         diasBloqueioInput.addEventListener('input', function() {
             const diasBloqueio = parseInt(diasBloqueioInput.value, 10);
             if (!isNaN(diasBloqueio)) {
-                const criadoEmValor = criadoEmInput.value;
+                const criadoEmValor = inicioInput.value;
                 if (criadoEmValor) {
                     const criadoEm = new Date(criadoEmValor);
                     const novaData = adicionarDias(criadoEm, diasBloqueio);
@@ -129,7 +129,7 @@
         // Atualiza o campo "Dias bloqueado" quando a data final é alterada
         bloqueadoAteInput.addEventListener('input', function() {
             const dataFinal = new Date(bloqueadoAteInput.value);
-            const criadoEmValor = criadoEmInput.value;
+            const criadoEmValor = inicioInput.value;
             if (criadoEmValor && !isNaN(dataFinal)) {
                 const criadoEm = new Date(criadoEmValor);
                 const diferenca = Math.ceil((dataFinal - criadoEm) / (1000 * 60 * 60 * 24));
@@ -138,8 +138,8 @@
         });
 
         // Inicializa o campo "Criado em" com a data atual se estiver vazio
-        if (!criadoEmInput.value) {
-            criadoEmInput.value = new Date().toISOString().split('T')[0];
+        if (!inicioInput.value) {
+            inicioInput.value = new Date().toISOString().split('T')[0];
         }
     });
 </script>

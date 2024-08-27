@@ -3,7 +3,10 @@
 require_once "helpers/protectNivel.php";
 require_once "library/Database.php";
 
-if (isset($_POST['id']) && isset($_POST['usuario']) && isset($_POST['fim']) && isset($_POST['motivo']) && isset($_POST['statusRegistro'])) {
+var_dump($_POST);
+exit;
+
+if (isset($_POST['id']) && isset($_POST['usuario_id']) && isset($_POST['fim']) && isset($_POST['motivo']) && isset($_POST['statusRegistro'])) {
 
     $db = new Database();
 

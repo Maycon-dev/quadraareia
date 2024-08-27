@@ -62,7 +62,7 @@
             
             <div class="col-md-12">
                 <div class="table-responsive">
-                    <table class="table table-border table-striped custom-table datatable mb-0">
+                    <table id="tbListaHorario" class="table table-border table-striped custom-table mb-0">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -107,5 +107,8 @@
 </div>
 
 <?php 
+
+    echo datatables("tbListaHorario");
+
     require_once 'comuns/rodape.php';
 ?>
