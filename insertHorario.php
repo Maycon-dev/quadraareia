@@ -62,7 +62,7 @@ if (isset($_POST['local_id'])) {
                             $diaSemana,      // Dia da semana
                             $horaInicioCompleta, // Hora de início no formato DATETIME
                             $horaFimCompleta,    // Hora de fim no formato DATETIME
-                            2  // Status do registro
+                            $statusRegistro  // Status do registro
                         ]
                     );
 

@@ -81,7 +81,6 @@
                                 <option value="6" <?= isset($dados->dia_semana) ? $dados->dia_semana == 6 ? "selected" : "" : "" ?>>Sexta</option>
                                 <option value="7" <?= isset($dados->dia_semana) ? $dados->dia_semana == 7 ? "selected" : "" : "" ?>>Sábado</option>
                             </select>
-
                         </div>
 
                         <div class="col-sm-4">
