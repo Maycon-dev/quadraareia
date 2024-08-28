@@ -33,7 +33,7 @@
   
         $dados_local = $db->dbSelect("SELECT * FROM local");
 
-        $dados_horario = $db->dbSelect("SELECT * FROM horario_disponivel WHERE statusRegistro = 1 AND local_id = ?");
+        // $dados_horario = $db->dbSelect("SELECTs * FROM horario_disponivel WHERE statusRegistro = 1 AND local_id = ?");
 
     // if (($_GET['acao'] == "delete") && $dados->SITUACAO_MESA == 2) {
     //     return header("Location: listaMesa.php?msgError=Não é possível excluir uma mesa com comanda em aberto");
@@ -72,15 +72,16 @@
                         <div class="col-sm-6">
                             <label for="dia_semana" class="form-label">Dia da semana  <span class="text-danger">*</span></label>
                             <select name="dia_semana" id="dia_semana" class="form-control" required>
-                                <option value=""  <?= isset($dados->dia_semana) ? $dados->dia_semana == "" ? "selected" : "" : "" ?>>...</option>
-                                <option value="1" <?= isset($dados->dia_semana) ? $dados->dia_semana == 1  ? "selected" : "" : "" ?>>Domingo</option>
-                                <option value="2" <?= isset($dados->dia_semana) ? $dados->dia_semana == 2  ? "selected" : "" : "" ?>>Segunda</option>
-                                <option value="3" <?= isset($dados->dia_semana) ? $dados->dia_semana == 3  ? "selected" : "" : "" ?>>Teça</option>
-                                <option value="4" <?= isset($dados->dia_semana) ? $dados->dia_semana == 4  ? "selected" : "" : "" ?>>Quarta</option>
-                                <option value="5" <?= isset($dados->dia_semana) ? $dados->dia_semana == 5  ? "selected" : "" : "" ?>>Quinta</option>
-                                <option value="6" <?= isset($dados->dia_semana) ? $dados->dia_semana == 6  ? "selected" : "" : "" ?>>Sexta</option>
-                                <option value="7" <?= isset($dados->dia_semana) ? $dados->dia_semana == 7  ? "selected" : "" : "" ?>>Sabado</option>
+                                <option value="" <?= isset($dados->dia_semana) ? $dados->dia_semana == "" ? "selected" : "" : "" ?>>...</option>
+                                <option value="1" <?= isset($dados->dia_semana) ? $dados->dia_semana == 1 ? "selected" : "" : "" ?>>Domingo</option>
+                                <option value="2" <?= isset($dados->dia_semana) ? $dados->dia_semana == 2 ? "selected" : "" : "" ?>>Segunda</option>
+                                <option value="3" <?= isset($dados->dia_semana) ? $dados->dia_semana == 3 ? "selected" : "" : "" ?>>Terça</option>
+                                <option value="4" <?= isset($dados->dia_semana) ? $dados->dia_semana == 4 ? "selected" : "" : "" ?>>Quarta</option>
+                                <option value="5" <?= isset($dados->dia_semana) ? $dados->dia_semana == 5 ? "selected" : "" : "" ?>>Quinta</option>
+                                <option value="6" <?= isset($dados->dia_semana) ? $dados->dia_semana == 6 ? "selected" : "" : "" ?>>Sexta</option>
+                                <option value="7" <?= isset($dados->dia_semana) ? $dados->dia_semana == 7 ? "selected" : "" : "" ?>>Sábado</option>
                             </select>
+
                         </div>
 
                         <div class="col-sm-4">

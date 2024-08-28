@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Tempo de geração: 25/08/2024 às 14:46
+-- Tempo de geração: 28/08/2024 às 00:24
 -- Versão do servidor: 8.3.0
 -- Versão do PHP: 8.2.18
 
@@ -22,6 +22,54 @@ SET time_zone = "+00:00";
 --
 CREATE DATABASE IF NOT EXISTS `marcacao_locais` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 USE `marcacao_locais`;
+
+DELIMITER $$
+--
+-- Procedimentos
+--
+DROP PROCEDURE IF EXISTS `AtualizarStatusHorario`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `AtualizarStatusHorario` ()   BEGIN
+    DECLARE v_data_atual DATE;
+    DECLARE v_dia_seguinte DATE;
+    DECLARE v_dia_semana INT;
+
+    -- Obter a data atual
+    SET v_data_atual = CURDATE();
+    
+    -- Calcular o próximo dia
+    SET v_dia_seguinte = DATE_ADD(v_data_atual, INTERVAL 1 DAY);
+
+    -- Determinar o dia da semana para o próximo dia
+    SET v_dia_semana = DAYOFWEEK(v_dia_seguinte);
+
+    -- Atualizar o statusRegistro para os horários do próximo dia
+    UPDATE horario_disponivel
+    SET statusRegistro = 1
+    WHERE dia_semana = v_dia_semana
+      AND DATE(hora_inicio) = v_dia_seguinte;
+
+END$$
+
+DELIMITER ;
+
+DELIMITER //
+
+CREATE EVENT IF NOT EXISTS AtualizarStatusDiariamente
+ON SCHEDULE EVERY 1 DAY
+STARTS '2024-08-27 00:00:00'  -- Ajuste a data e hora de início conforme necessário
+DO
+BEGIN
+    CALL AtualizarStatus();
+END //
+
+DELIMITER ;
+
+-- Verificar se o scheduler está ativado
+SHOW VARIABLES LIKE 'event_scheduler';
+
+-- Ativar o scheduler se estiver desativado
+SET GLOBAL event_scheduler = ON;
+
 
 -- --------------------------------------------------------
 
@@ -58,6 +106,21 @@ CREATE TABLE IF NOT EXISTS `configuracao` (
 -- --------------------------------------------------------
 
 --
+-- Estrutura para tabela `configuracoes_intervalo`
+--
+
+DROP TABLE IF EXISTS `configuracoes_intervalo`;
+CREATE TABLE IF NOT EXISTS `configuracoes_intervalo` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `intervalo_dias` int NOT NULL,
+  `data_ultima_atualizacao` date NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_intervalo` (`intervalo_dias`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estrutura para tabela `horario_disponivel`
 --
 
@@ -66,19 +129,12 @@ CREATE TABLE IF NOT EXISTS `horario_disponivel` (
   `id` int NOT NULL AUTO_INCREMENT,
   `local_id` int NOT NULL,
   `dia_semana` int NOT NULL COMMENT '1=domingo, 2=segunda, 3=terça, 4=quarta, 5=quinta, 6=sexta, 7=sábado',
-  `hora_inicio` time NOT NULL,
-  `hora_fim` time NOT NULL,
+  `hora_inicio` datetime NOT NULL,
+  `hora_fim` datetime NOT NULL,
   `statusRegistro` int NOT NULL DEFAULT '1' COMMENT '1 - Ativo, 2 - Inativo',
   PRIMARY KEY (`id`),
   KEY `local_id` (`local_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Despejando dados para a tabela `horario_disponivel`
---
-
-INSERT INTO `horario_disponivel` (`id`, `local_id`, `dia_semana`, `hora_inicio`, `hora_fim`, `statusRegistro`) VALUES
-(1, 2, 4, '08:00:00', '20:00:00', 2);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -97,14 +153,7 @@ CREATE TABLE IF NOT EXISTS `local` (
   `statusRegistro` int DEFAULT '1' COMMENT '1 - Ativo, 2 - Inativo',
   PRIMARY KEY (`id`),
   KEY `tipo_local` (`tipo_local`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Despejando dados para a tabela `local`
---
-
-INSERT INTO `local` (`id`, `nome_local`, `tipo_local`, `capacidade`, `descricao`, `preco_hora`, `statusRegistro`) VALUES
-(2, 'Quadra de Areia', 2, 20, 'Quadra de Areia C3', 15.00, 1);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -121,14 +170,7 @@ CREATE TABLE IF NOT EXISTS `metodo_pagamento` (
   `criado_em` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `atualizado_em` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Despejando dados para a tabela `metodo_pagamento`
---
-
-INSERT INTO `metodo_pagamento` (`id`, `nome`, `descricao`, `statusRegistro`, `criado_em`, `atualizado_em`) VALUES
-(1, 'Dinheiro', 'Dinheiro', 1, '2024-08-24 17:30:54', '2024-08-24 17:30:54');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -139,22 +181,34 @@ INSERT INTO `metodo_pagamento` (`id`, `nome`, `descricao`, `statusRegistro`, `cr
 DROP TABLE IF EXISTS `pagamento`;
 CREATE TABLE IF NOT EXISTS `pagamento` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `reserva_id` int NOT NULL,
-  `data_pagamento` datetime NOT NULL,
+  `id_reserva` int NOT NULL,
+  `valor_total` decimal(10,2) NOT NULL,
   `valor_pago` decimal(10,2) NOT NULL,
-  `metodo_pagamento` int NOT NULL COMMENT '1=cartao, 2=transferencia, 3=boleto, 4=outro',
-  `status_pagamento` int NOT NULL COMMENT '1=pago, 2=pendente',
-  PRIMARY KEY (`id`),
-  KEY `reserva_id` (`reserva_id`),
-  KEY `fk_metodo_pagamento` (`metodo_pagamento`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  `valor_restante` decimal(10,2) NOT NULL,
+  `status` int NOT NULL COMMENT '1 = Aberto, 2 = Parcialmente, 3 = Baixado',
+  `data_emissao` date NOT NULL,
+  `data_vencimento` date NOT NULL,
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `fk_reserva` (`id_reserva`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
 
 --
--- Despejando dados para a tabela `pagamento`
+-- Estrutura para tabela `pagamento_item`
 --
 
-INSERT INTO `pagamento` (`id`, `reserva_id`, `data_pagamento`, `valor_pago`, `metodo_pagamento`, `status_pagamento`) VALUES
-(1, 1, '0000-00-00 00:00:00', 15.00, 1, 0);
+DROP TABLE IF EXISTS `pagamento_item`;
+CREATE TABLE IF NOT EXISTS `pagamento_item` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `id_pagamento` int NOT NULL,
+  `id_metodo_pagamento` int NOT NULL,
+  `valor` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `data` date NOT NULL,
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `fk_pagamento` (`id_pagamento`) USING BTREE,
+  KEY `fk_metodo_pagamento` (`id_metodo_pagamento`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -172,15 +226,7 @@ CREATE TABLE IF NOT EXISTS `penalidade` (
   `motivo` varchar(250) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `usuario_id` (`usuario_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Despejando dados para a tabela `penalidade`
---
-
-INSERT INTO `penalidade` (`id`, `usuario_id`, `statusRegistro`, `inicio`, `fim`, `motivo`) VALUES
-(3, 3, 1, '2024-08-22', '2024-08-23', 'ryjhyhy'),
-(4, 3, 1, '2024-08-24', '2024-08-30', '');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -198,20 +244,25 @@ CREATE TABLE IF NOT EXISTS `reserva` (
   `data_hora_fim` datetime NOT NULL,
   `statusRegistro` int DEFAULT '1' COMMENT '1 - Ativo, 2 - Inativo',
   `status` int NOT NULL COMMENT '1=pendente, 2=confirmada, 3=cancelada',
-  `valor` decimal(10,2) NOT NULL,
+  `valor_total` decimal(10,2) NOT NULL,
   `cpf` varchar(50) NOT NULL,
   `telefone` varchar(50) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `usuario_id` (`usuario_id`),
   KEY `local_id` (`local_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
--- Despejando dados para a tabela `reserva`
+-- Acionadores `reserva`
 --
-
-INSERT INTO `reserva` (`id`, `usuario_id`, `local_id`, `data_reserva`, `data_hora_inicio`, `data_hora_fim`, `statusRegistro`, `status`, `valor`, `cpf`, `telefone`) VALUES
-(1, 2, 2, '0000-00-00 00:00:00', '2008-00-00 00:00:00', '2020-00-00 00:00:00', 1, 1, 15.00, '09068884689', '32984924071');
+DROP TRIGGER IF EXISTS `tg_geraPagamento`;
+DELIMITER $$
+CREATE TRIGGER `tg_geraPagamento` AFTER INSERT ON `reserva` FOR EACH ROW BEGIN
+    INSERT INTO pagamento (id_reserva, valor_total, valor_pago, valor_restante, status, data_emissao, vencimento)
+    VALUES (NEW.id, NEW.valor_total, 0, NEW.valor_total, 1, CURRENT_DATE, NEW.data_reserva);
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -261,15 +312,7 @@ CREATE TABLE IF NOT EXISTS `tipo_local` (
   `criado_em` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `atualizado_em` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Despejando dados para a tabela `tipo_local`
---
-
-INSERT INTO `tipo_local` (`id`, `nome`, `descricao`, `statusRegistro`, `criado_em`, `atualizado_em`) VALUES
-(2, 'Quadra', 'Quadra', 1, '2024-08-24 17:02:33', '2024-08-24 17:36:39'),
-(3, 'myrian aa', 'gdred', 1, '2024-08-24 22:00:46', '2024-08-24 22:00:46');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -289,15 +332,7 @@ CREATE TABLE IF NOT EXISTS `usuario` (
   `cpf` varchar(20) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Despejando dados para a tabela `usuario`
---
-
-INSERT INTO `usuario` (`id`, `nome`, `email`, `senha`, `telefone`, `statusRegistro`, `tipo_usuario`, `cpf`) VALUES
-(2, 'Administrador', 'sistemaagenda@gmail.com', '$2y$10$zW2j.Z8MstGc/rZEILmkbOCCli6PksVJOArnBl2bTtivE3WotL5Na', '09068489512', 1, 1, '09068884689'),
-(3, 'HUDSON CAIO', 'hudsoncaio123@gmail.com', '$2y$10$6o9arTkzQcOnAp4jDOhnLOdxMb5uckg.g9c7Rem.QZFpM/4rFp1yW', NULL, 1, 1, '173.173.007-13');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -307,15 +342,15 @@ INSERT INTO `usuario` (`id`, `nome`, `email`, `senha`, `telefone`, `statusRegist
 --
 DROP VIEW IF EXISTS `usuario_formatado`;
 CREATE TABLE IF NOT EXISTS `usuario_formatado` (
-`id` int
-,`nome` varchar(255)
-,`email` varchar(191)
-,`senha` varchar(255)
-,`telefone` varchar(20)
-,`statusRegistro` int
-,`tipo_usuario` int
-,`cpf` varchar(20)
-,`usu` varchar(283)
+	`cpf` varchar(20)
+	,`email` varchar(191)
+	,`id` int
+	,`nome` varchar(255)
+	,`senha` varchar(255)
+	,`statusRegistro` int
+	,`telefone` varchar(20)
+	,`tipo_usuario` int
+	,`usu` varchar(283)
 );
 
 -- --------------------------------------------------------
@@ -348,8 +383,14 @@ ALTER TABLE `local`
 -- Restrições para tabelas `pagamento`
 --
 ALTER TABLE `pagamento`
-  ADD CONSTRAINT `fk_metodo_pagamento` FOREIGN KEY (`metodo_pagamento`) REFERENCES `metodo_pagamento` (`id`),
-  ADD CONSTRAINT `pagamento_ibfk_1` FOREIGN KEY (`reserva_id`) REFERENCES `reserva` (`id`);
+  ADD CONSTRAINT `fk_reserva` FOREIGN KEY (`id_reserva`) REFERENCES `reserva` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Restrições para tabelas `pagamento_item`
+--
+ALTER TABLE `pagamento_item`
+  ADD CONSTRAINT `fk_metodo_pagamento` FOREIGN KEY (`id_metodo_pagamento`) REFERENCES `metodo_pagamento` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_pagamento` FOREIGN KEY (`id_pagamento`) REFERENCES `pagamento` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 --
 -- Restrições para tabelas `penalidade`
@@ -370,6 +411,17 @@ ALTER TABLE `reserva`
 ALTER TABLE `reserva_servico`
   ADD CONSTRAINT `reserva_servico_ibfk_1` FOREIGN KEY (`reserva_id`) REFERENCES `reserva` (`id`),
   ADD CONSTRAINT `reserva_servico_ibfk_2` FOREIGN KEY (`servico_id`) REFERENCES `servico_adicional` (`id`);
+
+DELIMITER $$
+--
+-- Eventos
+--
+DROP EVENT IF EXISTS `AtualizarStatusDiariamente`$$
+CREATE DEFINER=`root`@`localhost` EVENT `AtualizarStatusDiariamente` ON SCHEDULE EVERY 1 DAY STARTS '2024-08-27 00:00:00' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN
+    CALL AtualizarStatus();
+END$$
+
+DELIMITER ;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
