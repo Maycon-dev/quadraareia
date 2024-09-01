@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Tempo de geração: 28/08/2024 às 00:24
+-- Tempo de geração: 01/09/2024 às 14:34
 -- Versão do servidor: 8.3.0
 -- Versão do PHP: 8.2.18
 
@@ -27,49 +27,65 @@ DELIMITER $$
 --
 -- Procedimentos
 --
-DROP PROCEDURE IF EXISTS `AtualizarStatusHorario`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `AtualizarStatusHorario` ()   BEGIN
-    DECLARE v_data_atual DATE;
-    DECLARE v_dia_seguinte DATE;
-    DECLARE v_dia_semana INT;
+DROP PROCEDURE IF EXISTS `AtualizarHorarios`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `AtualizarHorarios` ()   BEGIN
+    DECLARE data_atual DATE;
+    DECLARE data_futura DATE;
+    DECLARE intervalo_dias INT;
 
-    -- Obter a data atual
-    SET v_data_atual = CURDATE();
+    -- Criação de uma tabela temporária para depuração
+    CREATE TEMPORARY TABLE IF NOT EXISTS debug_log (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        intervalo_dias INT
+    );
     
-    -- Calcular o próximo dia
-    SET v_dia_seguinte = DATE_ADD(v_data_atual, INTERVAL 1 DAY);
+    -- Obter o intervalo de dias da tabela de configuração
+    SELECT intervalo_dias
+    INTO intervalo_dias
+    FROM configuracoes_intervalo
+    LIMIT 1;
 
-    -- Determinar o dia da semana para o próximo dia
-    SET v_dia_semana = DAYOFWEEK(v_dia_seguinte);
+    -- Verificar o valor de intervalo_dias
+    SELECT intervalo_dias AS intervalo_dias_debug;
 
-    -- Atualizar o statusRegistro para os horários do próximo dia
+    -- Se intervalo_dias for NULL, definir um valor padrão (por exemplo, 7)
+    SET intervalo_dias = COALESCE(intervalo_dias, 7);
+
+    -- Inserir o valor na tabela temporária
+    INSERT INTO debug_log (intervalo_dias) VALUES (intervalo_dias);
+
+    -- Definir a data atual
+    SET data_atual = CURDATE();
+    
+    -- Definir a data futura (baseada no intervalo de dias)
+    SET data_futura = DATE_ADD(data_atual, INTERVAL intervalo_dias DAY);
+    
+    -- Atualizar o status dos horários fora do intervalo de 7 dias para inativo
     UPDATE horario_disponivel
-    SET statusRegistro = 1
-    WHERE dia_semana = v_dia_semana
-      AND DATE(hora_inicio) = v_dia_seguinte;
+    SET statusRegistro = 2
+    WHERE hora_inicio < data_atual AND statusRegistro = 1;
+    
+    -- Atualizar o status dos horários dentro do intervalo de 7 dias e sem reservas para ativo
+    UPDATE horario_disponivel hd
+    LEFT JOIN reserva r ON hd.id = r.horario_id
+    SET hd.statusRegistro = 1
+    WHERE hd.hora_inicio >= data_atual 
+      AND hd.hora_inicio <= data_futura
+      AND r.id IS NULL;
+    
+    -- Atualizar o status dos horários que já passaram, mas têm reservas (mantendo inativo)
+    UPDATE horario_disponivel hd
+    JOIN reserva r ON hd.id = r.horario_id
+    SET hd.statusRegistro = 2
+    WHERE hd.hora_inicio < data_atual 
+      AND r.id IS NOT NULL;
 
+    -- Para depuração, selecione o conteúdo da tabela temporária
+    SELECT * FROM debug_log;
+    
 END$$
 
 DELIMITER ;
-
-DELIMITER //
-
-CREATE EVENT IF NOT EXISTS AtualizarStatusDiariamente
-ON SCHEDULE EVERY 1 DAY
-STARTS '2024-08-27 00:00:00'  -- Ajuste a data e hora de início conforme necessário
-DO
-BEGIN
-    CALL AtualizarStatus();
-END //
-
-DELIMITER ;
-
--- Verificar se o scheduler está ativado
-SHOW VARIABLES LIKE 'event_scheduler';
-
--- Ativar o scheduler se estiver desativado
-SET GLOBAL event_scheduler = ON;
-
 
 -- --------------------------------------------------------
 
@@ -112,11 +128,15 @@ CREATE TABLE IF NOT EXISTS `configuracao` (
 DROP TABLE IF EXISTS `configuracoes_intervalo`;
 CREATE TABLE IF NOT EXISTS `configuracoes_intervalo` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `intervalo_dias` int NOT NULL,
-  `data_ultima_atualizacao` date NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_intervalo` (`intervalo_dias`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  `intervalo_dias` int NOT NULL COMMENT 'Número de dias para manter o status ativo',
+  `data_inicio` datetime NOT NULL COMMENT 'Data e hora de início do intervalo',
+  `data_fim` datetime NOT NULL COMMENT 'Data e hora de fim do intervalo',
+  `hora_inicio_intervalo` time DEFAULT NULL COMMENT 'Hora de início do intervalo',
+  `hora_fim_intervalo` time DEFAULT NULL COMMENT 'Hora de fim do intervalo',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_data_inicio` (`data_inicio`),
+  KEY `idx_data_fim` (`data_fim`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -132,8 +152,12 @@ CREATE TABLE IF NOT EXISTS `horario_disponivel` (
   `hora_inicio` datetime NOT NULL,
   `hora_fim` datetime NOT NULL,
   `statusRegistro` int NOT NULL DEFAULT '1' COMMENT '1 - Ativo, 2 - Inativo',
+  `configuracao_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `local_id` (`local_id`)
+  KEY `local_id` (`local_id`),
+  KEY `idx_hora_inicio` (`hora_inicio`),
+  KEY `idx_hora_fim` (`hora_fim`),
+  KEY `horario_disponivel_ibfk_2` (`configuracao_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -239,6 +263,7 @@ CREATE TABLE IF NOT EXISTS `reserva` (
   `id` int NOT NULL AUTO_INCREMENT,
   `usuario_id` int NOT NULL,
   `local_id` int NOT NULL,
+  `horario_id` int NOT NULL,
   `data_reserva` datetime NOT NULL,
   `data_hora_inicio` datetime NOT NULL,
   `data_hora_fim` datetime NOT NULL,
@@ -249,7 +274,8 @@ CREATE TABLE IF NOT EXISTS `reserva` (
   `telefone` varchar(50) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `usuario_id` (`usuario_id`),
-  KEY `local_id` (`local_id`)
+  KEY `local_id` (`local_id`),
+  KEY `reserva_ibfk_3` (`horario_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
@@ -342,15 +368,15 @@ CREATE TABLE IF NOT EXISTS `usuario` (
 --
 DROP VIEW IF EXISTS `usuario_formatado`;
 CREATE TABLE IF NOT EXISTS `usuario_formatado` (
-	`cpf` varchar(20)
-	,`email` varchar(191)
-	,`id` int
-	,`nome` varchar(255)
-	,`senha` varchar(255)
-	,`statusRegistro` int
-	,`telefone` varchar(20)
-	,`tipo_usuario` int
-	,`usu` varchar(283)
+`id` int
+,`nome` varchar(255)
+,`email` varchar(191)
+,`senha` varchar(255)
+,`telefone` varchar(20)
+,`statusRegistro` int
+,`tipo_usuario` int
+,`cpf` varchar(20)
+,`usu` varchar(283)
 );
 
 -- --------------------------------------------------------
@@ -371,7 +397,8 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 -- Restrições para tabelas `horario_disponivel`
 --
 ALTER TABLE `horario_disponivel`
-  ADD CONSTRAINT `horario_disponivel_ibfk_1` FOREIGN KEY (`local_id`) REFERENCES `local` (`id`);
+  ADD CONSTRAINT `horario_disponivel_ibfk_1` FOREIGN KEY (`local_id`) REFERENCES `local` (`id`),
+  ADD CONSTRAINT `horario_disponivel_ibfk_2` FOREIGN KEY (`configuracao_id`) REFERENCES `configuracoes_intervalo` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Restrições para tabelas `local`
@@ -403,7 +430,8 @@ ALTER TABLE `penalidade`
 --
 ALTER TABLE `reserva`
   ADD CONSTRAINT `reserva_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuario` (`id`),
-  ADD CONSTRAINT `reserva_ibfk_2` FOREIGN KEY (`local_id`) REFERENCES `local` (`id`);
+  ADD CONSTRAINT `reserva_ibfk_2` FOREIGN KEY (`local_id`) REFERENCES `local` (`id`),
+  ADD CONSTRAINT `reserva_ibfk_3` FOREIGN KEY (`horario_id`) REFERENCES `horario_disponivel` (`id`);
 
 --
 -- Restrições para tabelas `reserva_servico`
@@ -417,7 +445,7 @@ DELIMITER $$
 -- Eventos
 --
 DROP EVENT IF EXISTS `AtualizarStatusDiariamente`$$
-CREATE DEFINER=`root`@`localhost` EVENT `AtualizarStatusDiariamente` ON SCHEDULE EVERY 1 DAY STARTS '2024-08-27 00:00:00' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN
+CREATE DEFINER=`root`@`localhost` EVENT `AtualizarStatusDiariamente` ON SCHEDULE EVERY 1 DAY STARTS '2024-08-01 06:00:00' ON COMPLETION NOT PRESERVE ENABLE DO BEGIN
     CALL AtualizarStatus();
 END$$
 
